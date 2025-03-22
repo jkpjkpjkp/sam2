@@ -11,6 +11,7 @@ from typing import Any, Dict, Generator, ItemsView, List, Tuple
 
 import numpy as np
 import torch
+import pickle
 
 # Very lightly adapted from https://github.com/facebookresearch/segment-anything/blob/main/segment_anything/utils/amg.py
 
@@ -75,6 +76,24 @@ class MaskData:
         for k, v in self._stats.items():
             if isinstance(v, torch.Tensor):
                 self._stats[k] = v.float().detach().cpu().numpy()
+
+    def save(self, filename: str) -> None:
+        """
+        Save the MaskData contents to a file on disk.
+
+        Args:
+            filename (str): The path to the file where the data will be saved.
+        """
+        self.to_numpy()  # Convert all torch tensors to numpy arrays
+        with open(filename + '.pkl', 'wb') as f:
+            pickle.dump(self._stats, f)  # Serialize the _stats dictionary
+
+    @classmethod
+    def load(cls, filename: str) -> "MaskData":
+        import pickle
+        with open(filename, 'rb') as f:
+            stats = pickle.load(f)
+        return cls(**stats)
 
 
 def is_box_near_crop_edge(

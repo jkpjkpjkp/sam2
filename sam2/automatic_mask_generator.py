@@ -194,6 +194,10 @@ class SAM2AutomaticMaskGenerator:
 
         # Generate masks
         mask_data = self._generate_masks(image)
+        return self._post_process_mask_data(mask_data)
+
+    @torch.no_grad()
+    def _post_process_mask_data(self, mask_data: MaskData) -> List[Dict[str, Any]]:
 
         # Encode masks
         if self.output_mode == "coco_rle":
