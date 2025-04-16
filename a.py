@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 from PIL import Image
+import gradio as gr
 
 
 # select the device for computation
@@ -58,8 +59,8 @@ def show_anns(anns, borders=True):
     ax.imshow(img)
 
 
-image = Image.open('../Depth-Anything-V2/depth/assets/examples/demo01.jpg')
-image = np.array(image.convert("RGB"))
+# image = Image.open('../Depth-Anything-V2/depth/assets/examples/demo01.jpg')
+# image = np.array(image.convert("RGB"))
 
 
 
@@ -73,7 +74,7 @@ model_cfg = "configs/sam2.1/sam2.1_hiera_l.yaml"
 
 sam2 = build_sam2(model_cfg, sam2_checkpoint, device=device, apply_postprocessing=False)
 
-# mask_generator = SAM2AutomaticMaskGenerator(sam2)
+mask_generator = SAM2AutomaticMaskGenerator(sam2)
 # masks = mask_generator.generate(image)
 
 
@@ -93,19 +94,35 @@ mask_generator_2 = SAM2AutomaticMaskGenerator(
     pred_iou_thresh=0.7,
     stability_score_thresh=0.92,
     stability_score_offset=0.7,
-    crop_n_layers=1,
+    crop_n_layers=2,
     box_nms_thresh=0.7,
     crop_n_points_downscale_factor=2,
     min_mask_region_area=25.0,
     use_m2m=True,
 )
 
-masks2 = mask_generator_2.generate(image)
+def generate_masks(input_image):
+    image = np.array(input_image.convert("RGB"))
+    masks = mask_generator.generate(image)
+    mask_images = [ann['segmentation'].astype(np.uint8) * 255 for ann in masks]
+    return mask_images
 
-plt.figure(figsize=(20, 20))
-plt.imshow(image)
-show_anns(masks2)
-plt.axis('off')
-plt.show()
-plt.savefig('output.png')
-plt.close()
+iface = gr.Interface(
+    fn=generate_masks,
+    inputs=gr.Image(type="pil", label="Upload an Image"),
+    outputs=gr.Gallery(type="numpy", label="Generated Masks"),
+    title="SAM2 Mask Generator",
+    description="Upload an image to generate a list of segmentation masks using SAM2."
+)
+
+iface.launch(server_port=7861)
+
+# masks2 = mask_generator_2.generate(image)
+
+# plt.figure(figsize=(20, 20))
+# plt.imshow(image)
+# show_anns(masks2)
+# plt.axis('off')
+# plt.show()
+# plt.savefig('output.png')
+# plt.close()
