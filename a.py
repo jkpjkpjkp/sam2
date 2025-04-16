@@ -68,17 +68,44 @@ image = np.array(image.convert("RGB"))
 from sam2.build_sam import build_sam2
 from sam2.automatic_mask_generator import SAM2AutomaticMaskGenerator
 
-sam2_checkpoint = "../checkpoints/sam2.1_hiera_large.pt"
+sam2_checkpoint = "checkpoints/sam2.1_hiera_large.pt"
 model_cfg = "configs/sam2.1/sam2.1_hiera_l.yaml"
 
 sam2 = build_sam2(model_cfg, sam2_checkpoint, device=device, apply_postprocessing=False)
 
-mask_generator = SAM2AutomaticMaskGenerator(sam2)
-masks = mask_generator.generate(image)
+# mask_generator = SAM2AutomaticMaskGenerator(sam2)
+# masks = mask_generator.generate(image)
 
+
+# plt.figure(figsize=(20, 20))
+# plt.imshow(image)
+# show_anns(masks)
+# plt.axis('off')
+# plt.show()
+# plt.savefig('output.png')
+# plt.close()
+
+
+mask_generator_2 = SAM2AutomaticMaskGenerator(
+    model=sam2,
+    points_per_side=96,
+    points_per_batch=512,
+    pred_iou_thresh=0.7,
+    stability_score_thresh=0.92,
+    stability_score_offset=0.7,
+    crop_n_layers=1,
+    box_nms_thresh=0.7,
+    crop_n_points_downscale_factor=2,
+    min_mask_region_area=25.0,
+    use_m2m=True,
+)
+
+masks2 = mask_generator_2.generate(image)
 
 plt.figure(figsize=(20, 20))
 plt.imshow(image)
-show_anns(masks)
+show_anns(masks2)
 plt.axis('off')
 plt.show()
+plt.savefig('output.png')
+plt.close()
