@@ -58,7 +58,7 @@ def show_anns(anns, borders=True):
     ax.imshow(img)
 
 
-image = Image.open('depth/assets/examples/demo01.jpg')
+image = Image.open('../Depth-Anything-V2/depth/assets/examples/demo01.jpg')
 image = np.array(image.convert("RGB"))
 
 
