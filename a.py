@@ -56,6 +56,7 @@ def show_anns(anns, borders=True):
             contours = [cv2.approxPolyDP(contour, epsilon=0.01, closed=True) for contour in contours]
             cv2.drawContours(img, contours, -1, (0, 0, 1, 0.4), thickness=1)
 
+    return img
     ax.imshow(img)
 
 
@@ -100,6 +101,21 @@ mask_generator_2 = SAM2AutomaticMaskGenerator(
     min_mask_region_area=25.0,
     use_m2m=True,
 )
+
+def human_server(input_image):
+    image = np.array(input_image.convert("RGB"))
+    masks = mask_generator.generate(image)
+    return show_anns(masks)
+
+hface = gr.Interface(
+    fn=human_server,
+    inputs=gr.Image(type="pil", label="Upload an Image"),
+    outputs=gr.Image(type="numpy", label="Generated Masks"),
+    title="SAM2 Mask Generator",
+    description="Upload an image to generate a list of segmentation masks using SAM2."
+)
+hface.launch(server_port=7861)
+exit()
 
 def generate_masks(input_image):
     image = np.array(input_image.convert("RGB"))
