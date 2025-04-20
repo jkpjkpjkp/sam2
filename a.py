@@ -60,8 +60,6 @@ def show_anns(anns, borders=True):
     ax.imshow(img)
 
 
-# image = Image.open('../Depth-Anything-V2/depth/assets/examples/demo01.jpg')
-# image = np.array(image.convert("RGB"))
 
 
 
@@ -75,17 +73,8 @@ model_cfg = "configs/sam2.1/sam2.1_hiera_l.yaml"
 
 sam2 = build_sam2(model_cfg, sam2_checkpoint, device=device, apply_postprocessing=False)
 
-mask_generator = SAM2AutomaticMaskGenerator(sam2)
+mask_generator_1 = SAM2AutomaticMaskGenerator(sam2)
 # masks = mask_generator.generate(image)
-
-
-# plt.figure(figsize=(20, 20))
-# plt.imshow(image)
-# show_anns(masks)
-# plt.axis('off')
-# plt.show()
-# plt.savefig('output.png')
-# plt.close()
 
 
 mask_generator_2 = SAM2AutomaticMaskGenerator(
@@ -102,43 +91,79 @@ mask_generator_2 = SAM2AutomaticMaskGenerator(
     use_m2m=True,
 )
 
+mask_generator = mask_generator_1
+
 def human_server(input_image):
     image = np.array(input_image.convert("RGB"))
     masks = mask_generator.generate(image)
     return show_anns(masks)
 
-hface = gr.Interface(
-    fn=human_server,
-    inputs=gr.Image(type="pil", label="Upload an Image"),
-    outputs=gr.Image(type="numpy", label="Generated Masks"),
-    title="SAM2 Mask Generator",
-    description="Upload an image to generate a list of segmentation masks using SAM2."
-)
-hface.launch(server_port=7861)
-exit()
+def launch_human_server():
+    hface = gr.Interface(
+        fn=human_server,
+        inputs=gr.Image(type="pil", label="Upload an Image"),
+        outputs=gr.Image(type="numpy", label="Generated Masks"),
+        title="SAM2 Mask Generator",
+        description="Upload an image to generate a list of segmentation masks using SAM2."
+    )
+    hface.launch(server_port=7861)
+    exit()
 
-def generate_masks(input_image):
-    image = np.array(input_image.convert("RGB"))
-    masks = mask_generator.generate(image)
-    mask_images = [ann['segmentation'].astype(np.uint8) * 255 for ann in masks]
-    return mask_images
+def launch_np_server():
 
-iface = gr.Interface(
-    fn=generate_masks,
-    inputs=gr.Image(type="pil", label="Upload an Image"),
-    outputs=gr.Gallery(type="numpy", label="Generated Masks"),
-    title="SAM2 Mask Generator",
-    description="Upload an image to generate a list of segmentation masks using SAM2."
-)
+    def generate_masks(input_image):
+        image = np.array(input_image.convert("RGB"))
+        masks = mask_generator.generate(image)
+        mask_images = [ann['segmentation'].astype(np.uint8) * 255 for ann in masks]
+        return mask_images
 
-iface.launch(server_port=7861)
+    iface = gr.Interface(
+        fn=generate_masks,
+        inputs=gr.Image(type="pil", label="Upload an Image"),
+        outputs=gr.Gallery(type="numpy", label="Generated Masks"),
+        title="SAM2 Mask Generator",
+        description="Upload an image to generate a list of segmentation masks using SAM2."
+    )
 
-# masks2 = mask_generator_2.generate(image)
+    iface.launch(server_port=7861)
 
-# plt.figure(figsize=(20, 20))
-# plt.imshow(image)
-# show_anns(masks2)
-# plt.axis('off')
-# plt.show()
-# plt.savefig('output.png')
-# plt.close()
+def demo():
+
+    image = Image.open('../Depth-Anything-V2/depth/assets/examples/demo01.jpg')
+    image = np.array(image.convert("RGB"))
+    masks2 = mask_generator_2.generate(image)
+
+    plt.figure(figsize=(20, 20))
+    plt.imshow(image)
+    show_anns(masks2)
+    plt.axis('off')
+    plt.show()
+    plt.savefig('output.png')
+    plt.close()
+
+def launch_raw_server():
+    def generate_masks_raw(input_image):
+        """
+        Generate segmentation masks for the input image and return the raw mask data.
+        
+        Args:
+            input_image (PIL.Image): The input image.
+        
+        Returns:
+            list: A list of dictionaries containing the mask data with 'segmentation' converted to lists.
+        """
+        image = np.array(input_image.convert("RGB"))
+        masks = mask_generator.generate(image)
+        for mask in masks:
+            if 'segmentation' in mask:
+                mask['segmentation'] = mask['segmentation'].tolist()
+        return masks
+
+    iface = gr.Interface(
+        fn=generate_masks_raw,
+        inputs=gr.Image(type="pil", label="Upload an Image"),
+        outputs=gr.JSON(label="Generated Masks"),
+        title="SAM2 Mask Generator (Raw)",
+        description="Upload an image to generate a list of segmentation masks using SAM2 and return the raw mask data."
+    )
+    iface.launch(server_port=7861)
