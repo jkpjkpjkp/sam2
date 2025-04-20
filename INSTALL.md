@@ -1,3 +1,5 @@
+sudo apt install libcusparselt-dev
+
 ## Installation
 
 ### Requirements

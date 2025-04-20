@@ -11,3 +11,4 @@ checkpoints/*.pt
 demo/backend/checkpoints/*.pt
 checkpoints/*
 sam2.tar.gz
+*.npz

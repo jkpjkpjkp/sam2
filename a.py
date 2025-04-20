@@ -6,7 +6,7 @@ import torch
 import matplotlib.pyplot as plt
 from PIL import Image
 import gradio as gr
-
+import json
 
 # select the device for computation
 if torch.cuda.is_available():
@@ -142,28 +142,26 @@ def demo():
     plt.close()
 
 def launch_raw_server():
-    def generate_masks_raw(input_image):
-        """
-        Generate segmentation masks for the input image and return the raw mask data.
-        
-        Args:
-            input_image (PIL.Image): The input image.
-        
-        Returns:
-            list: A list of dictionaries containing the mask data with 'segmentation' converted to lists.
-        """
-        image = np.array(input_image.convert("RGB"))
+    def generate_masks_raw(image):
+        image = np.array(image.convert("RGB"))
         masks = mask_generator.generate(image)
-        for mask in masks:
-            if 'segmentation' in mask:
-                mask['segmentation'] = mask['segmentation'].tolist()
-        return masks
+        segmentations = np.stack([mask['segmentation'] for mask in masks])
+        areas = np.array([mask['area'] for mask in masks])
+        bboxes = np.array([mask['bbox'] for mask in masks])
+        predicted_ious = np.array([mask['predicted_iou'] for mask in masks])
+        import uuid
+        filename = f'{uuid.uuid4()}.npz'
+        np.savez_compressed(filename, segmentations=segmentations, areas=areas, predicted_ious=predicted_ious, bboxes=bboxes)
+        return filename
 
     iface = gr.Interface(
         fn=generate_masks_raw,
         inputs=gr.Image(type="pil", label="Upload an Image"),
-        outputs=gr.JSON(label="Generated Masks"),
+        outputs=gr.File(label="Generated Masks JSON"),
         title="SAM2 Mask Generator (Raw)",
-        description="Upload an image to generate a list of segmentation masks using SAM2 and return the raw mask data."
+        description="Upload an image to generate segmentation masks using SAM2. The raw mask data will be saved to a JSON file for download."
     )
     iface.launch(server_port=7861)
+
+if __name__ == '__main__':
+    launch_raw_server()
